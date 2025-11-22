@@ -80,6 +80,13 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_text()
             
+            if data == "reset":
+                blink_count = 0
+                eye_closed = False
+                verified = False
+                await websocket.send_json({"status": "No Face", "message": "Please look at the camera", "blinks": 0})
+                continue
+            
             if verified:
                  await websocket.send_json({"status": "verified", "message": "Person Verified", "blinks": blink_count})
                  continue
@@ -101,6 +108,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 
                 status = "No Face"
                 message = "Please look at the camera"
+                face_box = None
                 
                 if results.multi_face_landmarks:
                     status = "Face Detected"
@@ -108,6 +116,33 @@ async def websocket_endpoint(websocket: WebSocket):
                     
                     for face_landmarks in results.multi_face_landmarks:
                         landmarks = face_landmarks.landmark
+                        
+                        # Calculate bounding box
+                        h, w, _ = frame.shape
+                        x_min, x_max, y_min, y_max = w, 0, h, 0
+                        for lm in landmarks:
+                            x, y = int(lm.x * w), int(lm.y * h)
+                            if x < x_min: x_min = x
+                            if x > x_max: x_max = x
+                            if y < y_min: y_min = y
+                            if y > y_max: y_max = y
+                        
+                        # Add some padding
+                        pad_x = int((x_max - x_min) * 0.2)
+                        pad_y = int((y_max - y_min) * 0.2)
+                        x_min = max(0, x_min - pad_x)
+                        x_max = min(w, x_max + pad_x)
+                        y_min = max(0, y_min - pad_y)
+                        y_max = min(h, y_max + pad_y)
+                        
+                        face_box = {
+                            "x": x_min,
+                            "y": y_min,
+                            "width": x_max - x_min,
+                            "height": y_max - y_min,
+                            "frame_width": w,
+                            "frame_height": h
+                        }
                         
                         left_ear = calculate_ear(landmarks, LEFT_EYE)
                         right_ear = calculate_ear(landmarks, RIGHT_EYE)
@@ -129,7 +164,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 await websocket.send_json({
                     "status": status,
                     "message": message,
-                    "blinks": blink_count
+                    "blinks": blink_count,
+                    "face_box": face_box
                 })
                 
             except Exception as e:
