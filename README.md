@@ -10,28 +10,32 @@ A containerized web application that uses your webcam to detect faces and verify
 
 ## Quick Start
 
-### 1. Backend (Docker)
+### Using Docker Compose (Recommended)
 
-Build and run the backend container:
+Run the entire application (Backend + Frontend) with a single command:
 
+```bash
+docker-compose up --build
+```
+
+- **Frontend**: Open `http://localhost` in your browser.
+- **Backend**: Running on `http://localhost:8000`.
+
+### Local Development
+
+#### 1. Backend
 ```bash
 docker build -t liveliness-backend .
 docker run -p 8000:8000 liveliness-backend
 ```
 
-The backend will start on `http://localhost:8000`.
-
-### 2. Frontend (Local)
-
-Install dependencies and run the frontend:
-
+#### 2. Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-
-Open your browser to the URL shown (usually `http://localhost:5173`).
+Open `http://localhost:5173`.
 
 ## Usage
 

@@ -11,7 +11,16 @@ function App() {
 
   useEffect(() => {
     const connectWebSocket = () => {
-      const ws = new WebSocket('ws://localhost:8000/ws');
+      // Use relative path for WebSocket when served via Nginx (which proxies /ws)
+      // Fallback to localhost:8000 for local dev if needed, but for this deployment we assume proxy
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host; // Includes port if present
+      // If running on port 5173 (dev), connect to 8000 directly. Otherwise use relative /ws
+      const wsUrl = window.location.port === '5173'
+        ? 'ws://localhost:8000/ws'
+        : `${protocol}//${host}/ws`;
+
+      const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
